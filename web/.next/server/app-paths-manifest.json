@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/page": "app/page.js",
+  "/deposit-cancel/page": "app/deposit-cancel/page.js",
+  "/sign-up/step-2/page": "app/sign-up/step-2/page.js",
+  "/deposit-success/page": "app/deposit-success/page.js",
+  "/sign-in/page": "app/sign-in/page.js",
+  "/vote/page": "app/vote/page.js",
+  "/sign-up/step-1/page": "app/sign-up/step-1/page.js",
+  "/sign-up/step-3/page": "app/sign-up/step-3/page.js",
+  "/(home)/home/challenges/[id]/page": "app/(home)/home/challenges/[id]/page.js",
+  "/(home)/home/challenges/create/page": "app/(home)/home/challenges/create/page.js",
+  "/(home)/home/challenges/[id]/invite/page": "app/(home)/home/challenges/[id]/invite/page.js",
+  "/(home)/home/friends/add/page": "app/(home)/home/friends/add/page.js",
+  "/(home)/home/challenges/page": "app/(home)/home/challenges/page.js",
+  "/(home)/home/profile/history/page": "app/(home)/home/profile/history/page.js",
+  "/(home)/home/page": "app/(home)/home/page.js",
+  "/(home)/home/friends/page": "app/(home)/home/friends/page.js",
+  "/(home)/home/profile/payout/page": "app/(home)/home/profile/payout/page.js",
+  "/(home)/home/wallet/page": "app/(home)/home/wallet/page.js",
+  "/(home)/home/profile/page": "app/(home)/home/profile/page.js"
+}

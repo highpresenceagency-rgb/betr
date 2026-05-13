@@ -1,0 +1,22 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/page": "/",
+  "/deposit-cancel/page": "/deposit-cancel",
+  "/sign-up/step-2/page": "/sign-up/step-2",
+  "/deposit-success/page": "/deposit-success",
+  "/sign-in/page": "/sign-in",
+  "/vote/page": "/vote",
+  "/sign-up/step-1/page": "/sign-up/step-1",
+  "/sign-up/step-3/page": "/sign-up/step-3",
+  "/(home)/home/challenges/[id]/page": "/home/challenges/[id]",
+  "/(home)/home/challenges/create/page": "/home/challenges/create",
+  "/(home)/home/challenges/[id]/invite/page": "/home/challenges/[id]/invite",
+  "/(home)/home/friends/add/page": "/home/friends/add",
+  "/(home)/home/challenges/page": "/home/challenges",
+  "/(home)/home/profile/history/page": "/home/profile/history",
+  "/(home)/home/page": "/home",
+  "/(home)/home/friends/page": "/home/friends",
+  "/(home)/home/profile/payout/page": "/home/profile/payout",
+  "/(home)/home/wallet/page": "/home/wallet",
+  "/(home)/home/profile/page": "/home/profile"
+}

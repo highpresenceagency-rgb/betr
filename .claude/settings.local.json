@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npx expo *)",
+      "Bash(npm install *)",
+      "Bash(xargs cat *)",
+      "Bash(grep -E \"\\\\.json$|\\\\.config\")",
+      "Bash(file /Users/thorsunde/bettr/assets/*.png)",
+      "Bash(sips -g pixelWidth -g pixelHeight /Users/thorsunde/bettr/assets/*.png)",
+      "Bash(osascript -e 'tell application \"Terminal\" to do script \"npx expo start\"' -e 'tell application \"Terminal\" to activate')",
+      "Bash(osascript -e 'tell application \"Terminal\" to activate' -e 'tell application \"Terminal\" to do script \"npx expo start\"')",
+      "Bash(sudo npm *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(open -a Terminal \"/Users/thorsunde/bettr\")",
+      "Bash(npm run *)",
+      "Bash(npx next *)"
+    ]
+  }
+}
