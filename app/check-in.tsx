@@ -5,13 +5,17 @@ import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacit
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackButton from '../components/BackButton';
 import { PrimaryButton } from '../components/Button';
-import { colors, radii } from '../constants/theme';
+import { radii } from '../constants/theme';
 import { Challenge, Participant, getChallengeById, getChallengeParticipants, getMyVotes, submitVotes } from '../lib/api';
+import { makeStyles, useTheme } from '../lib/theme';
+import { guardGuest } from '../lib/guest';
 import { supabase } from '../lib/supabase';
 
 type VoteState = 'passing' | 'failing' | null;
 
 export default function VoteScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { challengeId } = useLocalSearchParams<{ challengeId?: string }>();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -55,6 +59,7 @@ export default function VoteScreen() {
 
   const handleSubmit = async () => {
     if (!challengeId) return;
+    if (guardGuest('vote')) return;
     setSubmitting(true);
     try {
       const voteMap: Record<string, 'passing' | 'failing'> = {};
@@ -76,7 +81,7 @@ export default function VoteScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StatusBar style="light" />
+        <StatusBar style="auto" />
         <BackButton label="← Challenge" />
         <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
       </SafeAreaView>
@@ -86,7 +91,7 @@ export default function VoteScreen() {
   if (!challengeId || !challenge) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StatusBar style="light" />
+        <StatusBar style="auto" />
         <BackButton label="← Challenge" />
         <Text style={styles.errorText}>No challenge selected for voting.</Text>
       </SafeAreaView>
@@ -95,7 +100,7 @@ export default function VoteScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <BackButton label="← Challenge" />
         <Text style={styles.title}>Cast your vote</Text>
@@ -158,8 +163,8 @@ export default function VoteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
   errorText: { color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 14 },
   title: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 2 },
@@ -167,37 +172,33 @@ const styles = StyleSheet.create({
 
   contextCard: {
     backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 16,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   contextTag: { fontSize: 8, color: '#2D6040', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 4 },
   contextName: { fontSize: 16, fontWeight: '800', color: colors.textPrimary, marginBottom: 8 },
-  shimmer: { height: 1, backgroundColor: '#2E2E2E', marginBottom: 8 },
+  shimmer: { height: 1, backgroundColor: colors.borderMid, marginBottom: 8 },
   contextGoal: { fontSize: 12, color: colors.textMuted },
 
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
+  sectionTag: { fontSize: 8, color: colors.textDim, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
 
   personCard: {
     backgroundColor: colors.card, borderRadius: radii.md, padding: 12, marginBottom: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#2A2A2A', borderLeftColor: '#252525', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   personTop: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 },
   avDim: {
     width: 30, height: 30, borderRadius: 15,
-    backgroundColor: '#141414', alignItems: 'center', justifyContent: 'center',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#252525', borderLeftColor: '#1E1E1E', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  avText: { fontSize: 9, fontWeight: '700', color: '#505050' },
+  avText: { fontSize: 9, fontWeight: '700', color: colors.textDim },
   personName: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
 
   voteRow: { flexDirection: 'row', gap: 8 },
   voteBtn: {
     flex: 1, paddingVertical: 9, borderRadius: 8, alignItems: 'center',
-    backgroundColor: '#111',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#1E1E1E', borderLeftColor: '#1A1A1A', borderRightColor: '#0A0A0A', borderBottomColor: '#080808',
+    backgroundColor: colors.input,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   voteBtnPassActive: {
     backgroundColor: colors.accentDark,
@@ -205,17 +206,16 @@ const styles = StyleSheet.create({
     borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
   },
   voteBtnFailActive: {
-    backgroundColor: '#1A0808',
-    borderTopColor: '#3A1515', borderLeftColor: '#2A1010', borderRightColor: '#0E0505', borderBottomColor: '#090303',
+    backgroundColor: colors.cardInner,
+    borderColor: colors.red,
   },
-  voteBtnText: { fontSize: 11, fontWeight: '700', color: '#3A3A3A' },
+  voteBtnText: { fontSize: 11, fontWeight: '700', color: colors.textDim },
   voteBtnTextPass: { color: colors.accent },
   voteBtnTextFail: { color: colors.red },
 
   infoCard: {
-    backgroundColor: '#0F0F0F', borderRadius: radii.md, padding: 12, marginTop: 4,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#1E1E1E', borderLeftColor: '#1A1A1A', borderRightColor: '#0A0A0A', borderBottomColor: '#070707',
+    backgroundColor: colors.cardInner, borderRadius: radii.md, padding: 12, marginTop: 4,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  infoText: { fontSize: 10, color: '#3A3A3A', lineHeight: 16, textAlign: 'center' },
-});
+  infoText: { fontSize: 10, color: colors.textDim, lineHeight: 16, textAlign: 'center' },
+}));

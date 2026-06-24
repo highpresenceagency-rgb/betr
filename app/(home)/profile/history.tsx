@@ -3,10 +3,13 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackButton from '../../../components/BackButton';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import { Transaction, getMyTransactions } from '../../../lib/api';
+import { makeStyles, useTheme } from '../../../lib/theme';
 
 export default function HistoryScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +24,7 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <BackButton />
         <Text style={styles.title}>History</Text>
@@ -89,25 +92,23 @@ export default function HistoryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 40 },
   title: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, marginBottom: 14 },
   statsRow: { flexDirection: 'row', gap: 6, marginBottom: 18 },
   statBadge: {
     flex: 1, backgroundColor: colors.input, borderRadius: radii.md,
     paddingVertical: 10, alignItems: 'center',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   statVal: { fontSize: 16, fontWeight: '800' },
   statLabel: { fontSize: 8, color: colors.textMuted, marginTop: 2 },
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
+  sectionTag: { fontSize: 8, color: colors.textDim, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
   list: { gap: 6 },
   histCard: {
     backgroundColor: colors.card, borderRadius: radii.lg, padding: 12,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   histTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 5 },
   histDesc: { fontSize: 13, fontWeight: '700', color: colors.textSecondary, flex: 1, marginRight: 8 },
@@ -130,4 +131,4 @@ const styles = StyleSheet.create({
   badgeTextWon: { color: colors.accent },
   badgeTextLost: { color: colors.red },
   emptyText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 24 },
-});
+}));

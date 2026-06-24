@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import {
   Alert,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -13,10 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../../components/Button';
 import Input from '../../components/Input';
 import Logo from '../../components/Logo';
-import { colors } from '../../constants/theme';
 import { supabase } from '../../lib/supabase';
+import { makeStyles } from '../../lib/theme';
 
 export default function SignInScreen() {
+  const styles = useStyles();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
@@ -36,7 +36,7 @@ export default function SignInScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -110,8 +110,8 @@ export default function SignInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 24,
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
   },
   welcome: {
     fontSize: 9,
-    color: '#2A2A2A',
+    color: colors.textMuted,
     letterSpacing: 2,
     textTransform: 'uppercase',
     marginBottom: 6,
@@ -161,4 +161,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
   },
-});
+}));

@@ -289,11 +289,27 @@ CREATE POLICY "profiles_update" ON profiles FOR UPDATE USING (auth.uid() = id);
 -- wallets: owner only
 CREATE POLICY "wallets_own" ON wallets FOR ALL USING (auth.uid() = user_id);
 
+-- SECURITY DEFINER helpers — keep challenges_select and participants_select from
+-- referencing each other's RLS-protected table directly (which caused 42P17
+-- infinite recursion). These read past RLS to evaluate the cross-table check.
+-- See rls_fix.sql for the full rationale (deployed as migration 09).
+CREATE OR REPLACE FUNCTION is_member(p_challenge UUID)
+  RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM challenge_participants cp
+                 WHERE cp.challenge_id = p_challenge AND cp.user_id = (select auth.uid()));
+$$;
+CREATE OR REPLACE FUNCTION can_see_challenge(p_challenge UUID)
+  RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT EXISTS (SELECT 1 FROM challenges c
+                 WHERE c.id = p_challenge AND (c.type = 'public' OR c.creator_id = (select auth.uid())));
+$$;
+GRANT EXECUTE ON FUNCTION is_member(UUID), can_see_challenge(UUID) TO anon, authenticated;
+
 -- challenges: public ones visible to all; private visible to creator + participants
 CREATE POLICY "challenges_select" ON challenges FOR SELECT USING (
   type = 'public'
-  OR creator_id = auth.uid()
-  OR EXISTS (SELECT 1 FROM challenge_participants cp WHERE cp.challenge_id = id AND cp.user_id = auth.uid())
+  OR creator_id = (select auth.uid())
+  OR is_member(id)
 );
 CREATE POLICY "challenges_insert" ON challenges FOR INSERT WITH CHECK (auth.uid() = creator_id);
 CREATE POLICY "challenges_update" ON challenges FOR UPDATE USING (auth.uid() = creator_id);
@@ -301,11 +317,17 @@ CREATE POLICY "challenges_delete" ON challenges FOR DELETE USING (auth.uid() = c
 
 -- participants: visible if challenge is public or you're involved
 CREATE POLICY "participants_select" ON challenge_participants FOR SELECT USING (
-  user_id = auth.uid()
-  OR EXISTS (SELECT 1 FROM challenges c WHERE c.id = challenge_id AND c.type = 'public')
-  OR EXISTS (SELECT 1 FROM challenges c WHERE c.id = challenge_id AND c.creator_id = auth.uid())
+  user_id = (select auth.uid())
+  OR can_see_challenge(challenge_id)
 );
 CREATE POLICY "participants_insert" ON challenge_participants FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- profiles FKs so PostgREST can embed profiles!creator_id / profiles!user_id etc.
+-- (these run alongside the auth.users FKs declared on the tables above).
+ALTER TABLE challenges            ADD CONSTRAINT challenges_creator_profiles_fkey            FOREIGN KEY (creator_id)   REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE challenge_participants ADD CONSTRAINT challenge_participants_user_profiles_fkey FOREIGN KEY (user_id)      REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE friendships           ADD CONSTRAINT friendships_requester_profiles_fkey         FOREIGN KEY (requester_id) REFERENCES profiles(id) ON DELETE CASCADE;
+ALTER TABLE friendships           ADD CONSTRAINT friendships_addressee_profiles_fkey         FOREIGN KEY (addressee_id) REFERENCES profiles(id) ON DELETE CASCADE;
 
 -- votes: own only; write requires active participation in that challenge
 CREATE POLICY "votes_own" ON votes FOR ALL

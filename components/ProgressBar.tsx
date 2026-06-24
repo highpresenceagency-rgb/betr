@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { colors } from '../constants/theme';
+import { View } from 'react-native';
+import { makeStyles } from '../lib/theme';
 
 interface Props {
   step: number;
@@ -8,6 +8,7 @@ interface Props {
 }
 
 export default function ProgressBar({ step, total = 4 }: Props) {
+  const styles = useStyles();
   const pct = step / total;
   return (
     <View style={styles.track}>
@@ -16,10 +17,10 @@ export default function ProgressBar({ step, total = 4 }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ colors }) => ({
   track: {
     height: 3,
-    backgroundColor: '#1A1A1A',
+    backgroundColor: colors.borderMid,
     borderRadius: 2,
     width: '100%',
     overflow: 'hidden',
@@ -29,4 +30,4 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
     borderRadius: 2,
   },
-});
+}));

@@ -1,22 +1,29 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackButton from '../../../components/BackButton';
 import { PrimaryButton } from '../../../components/Button';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import {
   Challenge, Participant,
   daysLeft, effectiveStatus,
-  getChallengeById, getChallengeParticipants, joinChallenge, processPayout,
+  getChallengeById, getChallengeParticipants, getChallengeProgress, joinChallenge, processPayout,
 } from '../../../lib/api';
+import { guardGuest } from '../../../lib/guest';
 import { supabase } from '../../../lib/supabase';
+import { makeStyles, useTheme } from '../../../lib/theme';
+
+type Progress = { approved: number; required: number; allowedMisses: number };
 
 export default function ChallengeDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const styles = useStyles();
+  const { colors } = useTheme();
   const [challenge, setChallenge] = useState<Challenge | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [progress, setProgress] = useState<Progress | null>(null);
   const [joined, setJoined] = useState(false);
   const [myId, setMyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -24,13 +31,14 @@ export default function ChallengeDetailScreen() {
   const [processingPayout, setProcessingPayout] = useState(false);
 
   const handleProcessPayout = () => {
+    if (guardGuest('process payouts')) return;
     Alert.alert(
-      'Process payouts?',
-      'This will tally all votes, pay out winners, and close the challenge. This cannot be undone.',
+      'Settle this challenge?',
+      'This pays out everyone who completed the challenge and closes it. This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Process',
+          text: 'Settle',
           onPress: async () => {
             setProcessingPayout(true);
             try {
@@ -38,9 +46,9 @@ export default function ChallengeDetailScreen() {
               const [updated, p] = await Promise.all([getChallengeById(id!), getChallengeParticipants(id!)]);
               setChallenge(updated);
               setParticipants(p);
-              Alert.alert('Payouts processed', 'Winners have been paid out and the challenge is now closed.');
+              Alert.alert('Done', 'Winners have been paid and the challenge is closed.');
             } catch (e: unknown) {
-              Alert.alert('Error', e instanceof Error ? e.message : 'Payout failed');
+              Alert.alert('Error', e instanceof Error ? e.message : 'Settlement failed');
             } finally {
               setProcessingPayout(false);
             }
@@ -59,12 +67,14 @@ export default function ChallengeDetailScreen() {
       Promise.all([
         getChallengeById(id),
         getChallengeParticipants(id),
+        getChallengeProgress(id),
         supabase.auth.getUser(),
-      ]).then(([c, p, { data: { user } }]) => {
+      ]).then(([c, p, prog, { data: { user } }]) => {
         if (!active) return;
         const userId = user?.id ?? null;
         setChallenge(c);
         setParticipants(p);
+        setProgress(prog);
         setJoined(p.some(pt => pt.user_id === userId));
         setMyId(userId);
         setLoading(false);
@@ -76,6 +86,7 @@ export default function ChallengeDetailScreen() {
 
   const handleJoin = () => {
     if (!challenge) return;
+    if (guardGuest('join this challenge')) return;
     Alert.alert(
       `Join for $${challenge.bet_amount}?`,
       'This amount will be locked in your wallet until the challenge ends.',
@@ -104,7 +115,7 @@ export default function ChallengeDetailScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StatusBar style="light" />
+        <StatusBar style="auto" />
         <BackButton label="← Challenges" />
         <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
       </SafeAreaView>
@@ -114,7 +125,7 @@ export default function ChallengeDetailScreen() {
   if (!challenge) {
     return (
       <SafeAreaView style={styles.safe}>
-        <StatusBar style="light" />
+        <StatusBar style="auto" />
         <BackButton label="← Challenges" />
         <Text style={styles.errorText}>Challenge not found.</Text>
       </SafeAreaView>
@@ -125,10 +136,12 @@ export default function ChallengeDetailScreen() {
   const left = daysLeft(challenge.ends_at);
   const isVoting = status === 'voting';
   const isCreator = myId === challenge.creator_id;
+  const need = progress ? Math.max(1, progress.required - progress.allowedMisses) : 0;
+  const pct = need > 0 && progress ? Math.min(1, progress.approved / need) : 0;
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <BackButton label="← Challenges" />
 
@@ -142,9 +155,9 @@ export default function ChallengeDetailScreen() {
             )}
           </View>
           <View style={[styles.livePill, (status === 'pending' || status === 'completed' || status === 'cancelled') && styles.livePillDim]}>
-            <View style={[styles.liveDot, { backgroundColor: status === 'voting' ? colors.amber : status === 'live' ? colors.accent : '#555' }]} />
+            <View style={[styles.liveDot, { backgroundColor: status === 'voting' ? colors.amber : status === 'live' ? colors.accent : colors.textDim }]} />
             <Text style={[styles.liveText, (status === 'pending' || status === 'completed' || status === 'cancelled') && styles.liveTextDim]}>
-              {status === 'voting' ? 'Voting' : status === 'completed' ? 'Ended' : status === 'pending' ? 'Soon' : status === 'cancelled' ? 'Cancelled' : 'Live'}
+              {status === 'voting' ? 'Reviewing' : status === 'completed' ? 'Ended' : status === 'pending' ? 'Soon' : status === 'cancelled' ? 'Cancelled' : 'Live'}
             </Text>
           </View>
         </View>
@@ -161,7 +174,7 @@ export default function ChallengeDetailScreen() {
           <View style={styles.potRow}>
             <View>
               <Text style={styles.potTag}>TOTAL POT</Text>
-              <Text style={styles.potAmt}>${challenge.pot.toFixed(0)}</Text>
+              <Text style={styles.potAmt}>${Math.round(challenge.pot).toLocaleString()}</Text>
             </View>
             <View style={styles.betRight}>
               <Text style={styles.potTag}>BET TO JOIN</Text>
@@ -175,26 +188,25 @@ export default function ChallengeDetailScreen() {
           </View>
         </View>
 
-        {challenge.creator_fee_percent > 0 && (
-          <View style={styles.payoutCard}>
-            <Text style={styles.sectionTag}>PAYOUT STRUCTURE</Text>
-            <View style={styles.payoutRow}>
-              <Text style={styles.payoutLabel}>Winners share</Text>
-              <Text style={styles.payoutVal}>{100 - challenge.creator_fee_percent}%</Text>
-            </View>
-            <View style={styles.payoutRow}>
-              <Text style={styles.payoutLabel}>Creator fee</Text>
-              <Text style={[styles.payoutVal, { color: colors.textMuted }]}>{challenge.creator_fee_percent}%</Text>
-            </View>
+        {/* progress toward completion (you win by finishing, not by beating others) */}
+        {joined && progress && need > 0 && (
+          <View style={styles.progressCard}>
+            <Text style={styles.sectionTag}>YOUR PROGRESS</Text>
+            <Text style={styles.progressNums}>
+              <Text style={styles.progressBig}>{progress.approved}</Text> / {need} approved
+              {progress.allowedMisses > 0 ? `  ·  ${progress.allowedMisses} misses allowed` : ''}
+            </Text>
+            <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${pct * 100}%` }]} /></View>
           </View>
         )}
 
         <View style={styles.goalCard}>
           <Text style={styles.sectionTag}>GOAL</Text>
           <Text style={styles.goalText}>{challenge.goal}</Text>
+          {challenge.target_reps ? <Text style={styles.goalText}>Target: {challenge.target_reps} reps per submission</Text> : null}
           <View style={styles.shimmer} />
           <View style={styles.verifyPill}>
-            <Text style={styles.verifyText}>🗳  Verification: group vote</Text>
+            <Text style={styles.verifyText}>🎥  Verified by video + AI + your group</Text>
           </View>
         </View>
 
@@ -233,16 +245,31 @@ export default function ChallengeDetailScreen() {
 
         {joined || isCreator ? (
           <>
-            {isVoting && joined && (
+            {joined && status === 'live' && (
               <>
-                <PrimaryButton label="Cast your votes →" onPress={() => router.push({ pathname: '/check-in', params: { challengeId: id } })} />
+                <PrimaryButton
+                  label="Record today’s proof →"
+                  onPress={() => router.push({ pathname: '/proof', params: { id } })}
+                />
+                <View style={{ height: 8 }} />
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={() => router.push({ pathname: '/(home)/challenges/group', params: { id } })}
+                >
+                  <Text style={styles.secondaryBtnText}>Your accountability group →</Text>
+                </TouchableOpacity>
                 <View style={{ height: 8 }} />
               </>
+            )}
+            {isVoting && (
+              <View style={styles.noteCard}>
+                <Text style={styles.noteText}>Challenge ended — final proof reviews are wrapping up before payout.</Text>
+              </View>
             )}
             {isVoting && isCreator && (
               <>
                 <TouchableOpacity style={styles.payoutBtn} onPress={handleProcessPayout} disabled={processingPayout}>
-                  <Text style={styles.payoutBtnText}>{processingPayout ? 'Processing…' : 'Process payouts & close →'}</Text>
+                  <Text style={styles.payoutBtnText}>{processingPayout ? 'Settling…' : 'Settle & close →'}</Text>
                 </TouchableOpacity>
                 <View style={{ height: 8 }} />
               </>
@@ -265,112 +292,112 @@ export default function ChallengeDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 40 },
   errorText: { color: colors.textMuted, textAlign: 'center', marginTop: 40, fontSize: 14 },
 
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 },
   titleLeft: { flex: 1, marginRight: 10 },
-  title: { fontSize: 18, fontWeight: '800', color: colors.textPrimary, marginBottom: 2 },
-  dates: { fontSize: 10, color: colors.textMuted },
+  title: { fontSize: 20, fontWeight: '900', color: colors.textPrimary, marginBottom: 2, letterSpacing: -0.3 },
+  dates: { fontSize: 11, color: colors.textMuted },
   livePill: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
     backgroundColor: colors.accentDark, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
+    borderWidth: 1, borderColor: colors.accentBorder,
   },
   liveDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: colors.accent },
   liveText: { fontSize: 9, fontWeight: '700', color: colors.accent },
-  livePillDim: { backgroundColor: '#111', borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808' },
-  liveTextDim: { color: '#555' },
+  livePillDim: { backgroundColor: colors.input, borderColor: colors.borderMid },
+  liveTextDim: { color: colors.textDim },
 
   typePillRow: { marginBottom: 10 },
   typePill: { alignSelf: 'flex-start', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
-  typePillPrivate: { backgroundColor: '#141414', borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderTopColor: '#2A2A2A', borderLeftColor: '#242424', borderRightColor: '#111', borderBottomColor: '#0A0A0A' },
-  typePillPublic: { backgroundColor: '#0F1A14', borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderTopColor: '#1E3025', borderLeftColor: '#182A1E', borderRightColor: '#0A1410', borderBottomColor: '#070F0B' },
+  typePillPrivate: { backgroundColor: colors.input, borderWidth: 1, borderColor: colors.borderMid },
+  typePillPublic: { backgroundColor: colors.accentDark, borderWidth: 1, borderColor: colors.accentBorder },
   typePillText: { fontSize: 10, fontWeight: '600' },
-  typePillTextPrivate: { color: '#555' },
-  typePillTextPublic: { color: '#3A6A4A' },
+  typePillTextPrivate: { color: colors.textDim },
+  typePillTextPublic: { color: colors.accent },
 
   potCard: {
-    backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    backgroundColor: colors.card, borderRadius: radii.lg, padding: 16, marginBottom: 8,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   potRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  potTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700' },
+  potTag: { fontSize: 9, color: colors.textDim, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700' },
   potAmt: { fontSize: 36, fontWeight: '900', color: colors.accent, letterSpacing: -1.5 },
   betRight: { alignItems: 'flex-end' },
   betAmt: { fontSize: 22, fontWeight: '700', color: colors.textSecondary, marginTop: 4 },
-  shimmer: { height: 1, backgroundColor: '#2E2E2E', marginVertical: 8 },
+  shimmer: { height: 1, backgroundColor: colors.borderMid, marginVertical: 8 },
   potFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  potFooterLeft: { fontSize: 10, color: colors.textMuted },
-  potPayout: { fontSize: 9, color: '#2E2E2E' },
+  potFooterLeft: { fontSize: 11, color: colors.textMuted },
+  potPayout: { fontSize: 10, color: colors.textMuted },
 
-  payoutCard: {
+  progressCard: {
     backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  payoutRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
-  payoutLabel: { fontSize: 12, color: colors.textSecondary },
-  payoutVal: { fontSize: 12, fontWeight: '700', color: colors.accent },
+  progressNums: { color: colors.textSecondary, fontSize: 13, marginBottom: 8 },
+  progressBig: { color: colors.accent, fontSize: 18, fontWeight: '900' },
+  progressTrack: { height: 6, borderRadius: 3, backgroundColor: colors.input, overflow: 'hidden' },
+  progressFill: { height: 6, borderRadius: 3, backgroundColor: colors.accent },
 
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
+  sectionTag: { fontSize: 10, color: colors.textDim, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
 
   goalCard: {
-    backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    backgroundColor: colors.card, borderRadius: radii.lg, padding: 16, marginBottom: 8,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  goalText: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, lineHeight: 19 },
+  goalText: { fontSize: 14, color: colors.textSecondary, marginBottom: 8, lineHeight: 20 },
   verifyPill: {
-    alignSelf: 'flex-start', backgroundColor: colors.accentDark, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
+    alignSelf: 'flex-start', backgroundColor: colors.accentDark, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.accentBorder,
   },
-  verifyText: { fontSize: 10, color: colors.accent, fontWeight: '600' },
+  verifyText: { fontSize: 11, color: colors.accent, fontWeight: '600' },
 
   standingsCard: {
     backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  standingsList: { gap: 5 },
+  standingsList: { gap: 6 },
   standingRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#111', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input, borderRadius: radii.md, paddingHorizontal: 10, paddingVertical: 9,
+    borderWidth: 1, borderColor: colors.borderLight,
   },
   standingLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rank: { fontSize: 11, fontWeight: '700', width: 14 },
   rankFirst: { color: colors.accent },
-  rankRest: { color: '#444' },
+  rankRest: { color: colors.textDim },
   av: { width: 24, height: 24, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   avGreen: {
     backgroundColor: colors.accentDark,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#3A7A45', borderLeftColor: '#2A6035', borderRightColor: '#0E1F12', borderBottomColor: '#091508',
+    borderWidth: 1.5, borderColor: colors.accentBorder,
   },
   avDim: {
-    backgroundColor: '#141414',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#252525', borderLeftColor: '#1E1E1E', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.card,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  avText: { fontSize: 8, fontWeight: '700' },
+  avText: { fontSize: 9, fontWeight: '700' },
   avTextGreen: { color: colors.accent },
-  avTextDim: { color: '#3A3A3A' },
+  avTextDim: { color: colors.textDim },
   standingName: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
-  standingNameDim: { color: '#555' },
+  standingNameDim: { color: colors.textDim },
   standingRight: { alignItems: 'flex-end' },
   standingStatus: { fontSize: 9 },
 
+  secondaryBtn: {
+    width: '100%', alignItems: 'center', paddingVertical: 14, borderRadius: radii.lg,
+    backgroundColor: colors.input, borderWidth: 1.5, borderColor: colors.borderLight,
+  },
+  secondaryBtnText: { color: colors.accent, fontSize: 13, fontWeight: '700', letterSpacing: 0.3 },
+  noteCard: {
+    backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: colors.borderMid,
+  },
+  noteText: { color: colors.textSecondary, fontSize: 13, lineHeight: 19, textAlign: 'center' },
   inviteBtn: { alignItems: 'center', paddingVertical: 8 },
   inviteBtnText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
   payoutBtn: { alignItems: 'center', paddingVertical: 8 },
   payoutBtnText: { color: colors.amber, fontSize: 12, fontWeight: '600' },
-});
+}));

@@ -1,12 +1,12 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  StyleSheet,
   Text,
   TouchableOpacity,
   TouchableOpacityProps,
 } from 'react-native';
-import { colors, radii } from '../constants/theme';
+import { radii } from '../constants/theme';
+import { makeStyles, useTheme } from '../lib/theme';
 
 interface ButtonProps extends TouchableOpacityProps {
   label: string;
@@ -14,6 +14,8 @@ interface ButtonProps extends TouchableOpacityProps {
 }
 
 export function PrimaryButton({ label, loading, style, disabled, ...rest }: ButtonProps) {
+  const styles = useStyles();
+  const { colors } = useTheme();
   return (
     <TouchableOpacity
       activeOpacity={0.85}
@@ -31,6 +33,7 @@ export function PrimaryButton({ label, loading, style, disabled, ...rest }: Butt
 }
 
 export function GhostButton({ label, style, ...rest }: ButtonProps) {
+  const styles = useStyles();
   return (
     <TouchableOpacity activeOpacity={0.75} style={[styles.ghost, style]} {...rest}>
       <Text style={styles.ghostLabel}>{label}</Text>
@@ -38,7 +41,7 @@ export function GhostButton({ label, style, ...rest }: ButtonProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ colors }) => ({
   primary: {
     width: '100%',
     backgroundColor: colors.accent,
@@ -50,10 +53,10 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1.5,
     borderRightWidth: 1.5,
     borderBottomWidth: 1.5,
-    borderTopColor: '#5FFF9A',
-    borderLeftColor: '#4FFF8A',
-    borderRightColor: '#25CC60',
-    borderBottomColor: '#1AAA50',
+    borderTopColor: colors.accent,
+    borderLeftColor: colors.accent,
+    borderRightColor: colors.accentBorder,
+    borderBottomColor: colors.accentBorder,
   },
   primaryLabel: {
     color: colors.bg,
@@ -88,4 +91,4 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
   },
-});
+}));

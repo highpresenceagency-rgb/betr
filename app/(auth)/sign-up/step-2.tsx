@@ -8,9 +8,10 @@ import BackButton from '../../../components/BackButton';
 import { GhostButton, PrimaryButton } from '../../../components/Button';
 import Logo from '../../../components/Logo';
 import ProgressBar from '../../../components/ProgressBar';
-import { colors } from '../../../constants/theme';
+import { makeStyles } from '../../../lib/theme';
 
 export default function SignUpStep2() {
+  const styles = useStyles();
   const [photo, setPhoto] = useState<string | null>(null);
 
   const pickFromCamera = async () => {
@@ -43,7 +44,7 @@ export default function SignUpStep2() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <View style={styles.container}>
         <BackButton />
 
@@ -100,8 +101,8 @@ export default function SignUpStep2() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   container: {
     flex: 1,
     paddingHorizontal: 20,
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
   orLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.borderMid,
   },
   orText: {
     color: colors.textMuted,
@@ -202,8 +203,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   skipText: {
-    color: '#3A3A3A',
+    color: colors.textDim,
     fontSize: 13,
     fontWeight: '500',
   },
-});
+}));

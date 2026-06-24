@@ -7,11 +7,13 @@ import BackButton from '../../../components/BackButton';
 import { PrimaryButton } from '../../../components/Button';
 import Logo from '../../../components/Logo';
 import ProgressBar from '../../../components/ProgressBar';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import { signUpStore } from '../../../lib/signUpStore';
 import { supabase } from '../../../lib/supabase';
+import { makeStyles } from '../../../lib/theme';
 
 export default function SignUpStep4() {
+  const styles = useStyles();
   const [loading, setLoading] = useState(false);
   const { firstName, lastName, username, email } = signUpStore;
   const displayName = lastName ? `${firstName} ${lastName}` : firstName;
@@ -59,7 +61,7 @@ export default function SignUpStep4() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -112,8 +114,8 @@ export default function SignUpStep4() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -148,14 +150,8 @@ const styles = StyleSheet.create({
     borderRadius: radii.lg,
     padding: 16,
     marginBottom: 12,
-    borderTopWidth: 1.5,
-    borderLeftWidth: 1.5,
-    borderRightWidth: 1.5,
-    borderBottomWidth: 1.5,
-    borderTopColor: '#303030',
-    borderLeftColor: '#2A2A2A',
-    borderRightColor: '#111111',
-    borderBottomColor: '#0A0A0A',
+    borderWidth: 1,
+    borderColor: colors.borderMid,
   },
   reviewRow: {
     flexDirection: 'row',
@@ -165,7 +161,7 @@ const styles = StyleSheet.create({
   },
   reviewLabel: {
     fontSize: 8,
-    color: '#3A3A3A',
+    color: colors.textDim,
     letterSpacing: 1.5,
     fontWeight: '700',
   },
@@ -176,30 +172,24 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: '#1E1E1E',
+    backgroundColor: colors.borderMid,
   },
   walletNote: {
-    backgroundColor: '#0D0D0D',
+    backgroundColor: colors.cardInner,
     borderRadius: radii.md,
     padding: 14,
-    borderTopWidth: 1,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderBottomWidth: 1,
-    borderTopColor: '#1A1A1A',
-    borderLeftColor: '#161616',
-    borderRightColor: '#080808',
-    borderBottomColor: '#050505',
+    borderWidth: 1,
+    borderColor: colors.borderLight,
   },
   walletNoteTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#3A3A3A',
+    color: colors.textDim,
     marginBottom: 6,
   },
   walletNoteText: {
     fontSize: 10,
-    color: '#252525',
+    color: colors.textMuted,
     lineHeight: 15,
   },
-});
+}));

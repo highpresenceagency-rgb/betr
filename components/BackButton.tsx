@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { colors } from '../constants/theme';
+import { Text, TouchableOpacity } from 'react-native';
+import { makeStyles } from '../lib/theme';
 
 interface Props {
   onPress?: () => void;
@@ -9,6 +9,7 @@ interface Props {
 }
 
 export default function BackButton({ onPress, label = '← Back' }: Props) {
+  const styles = useStyles();
   return (
     <TouchableOpacity
       onPress={onPress ?? (() => router.back())}
@@ -20,7 +21,7 @@ export default function BackButton({ onPress, label = '← Back' }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ colors }) => ({
   btn: {
     alignSelf: 'flex-start',
     marginBottom: 12,
@@ -31,4 +32,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.3,
   },
-});
+}));

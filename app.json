@@ -18,8 +18,9 @@
       "bundleIdentifier": "app.bettrr",
       "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Bettr uses your camera to set your profile photo.",
-        "NSPhotoLibraryUsageDescription": "Bettr accesses your photo library to set your profile photo."
+        "NSCameraUsageDescription": "Bettrr records your workout proof in-app to verify you completed the challenge.",
+        "NSMicrophoneUsageDescription": "Bettrr records audio so you can say the daily anti-replay code in your proof video.",
+        "NSPhotoLibraryUsageDescription": "Bettrr accesses your photo library to set your profile photo."
       }
     },
     "android": {
@@ -33,6 +34,7 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
         "android.permission.READ_EXTERNAL_STORAGE"
       ]
     },
@@ -44,15 +46,26 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Bettr accesses your photo library to set your profile photo.",
-          "cameraPermission": "Bettr uses your camera to set your profile photo."
+          "photosPermission": "Bettrr accesses your photo library to set your profile photo.",
+          "cameraPermission": "Bettrr uses your camera to set your profile photo."
         }
-      ]
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Bettrr records your workout proof in-app to verify you completed the challenge.",
+          "microphonePermission": "Bettrr records audio so you can say the daily anti-replay code in your proof video.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-video"
     ],
     "extra": {
       "eas": {
-        "projectId": "replace-with-your-eas-project-id"
-      }
-    }
+        "projectId": "55f7b3b0-4971-4e5f-adc0-d68a237bcbdd"
+      },
+      "router": {}
+    },
+    "owner": "wildboats"
   }
 }

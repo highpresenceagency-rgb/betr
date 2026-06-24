@@ -5,10 +5,13 @@ import { ScrollView, Share, StyleSheet, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackButton from '../../../components/BackButton';
 import { GhostButton, PrimaryButton } from '../../../components/Button';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import { getChallengeParticipants, Participant } from '../../../lib/api';
+import { makeStyles, useTheme } from '../../../lib/theme';
 
 export default function InviteScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const { goal, challengeId } = useLocalSearchParams<{ goal?: string; challengeId?: string }>();
   const [participants, setParticipants] = useState<Participant[]>([]);
 
@@ -40,7 +43,7 @@ export default function InviteScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
@@ -63,7 +66,7 @@ export default function InviteScreen() {
                   {
                     top: 20 + Math.floor(i / 3) * 18,
                     left: 40 + (i % 3) * 14,
-                    backgroundColor: i % 2 === 0 ? colors.accent : '#2A2A2A',
+                    backgroundColor: i % 2 === 0 ? colors.accent : colors.borderMid,
                   },
                 ]}
               />
@@ -115,8 +118,8 @@ export default function InviteScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40, alignItems: 'center' },
   title: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 2, alignSelf: 'flex-start' },
   sub: { fontSize: 8, color: colors.textMuted, letterSpacing: 1.5, marginBottom: 24, alignSelf: 'flex-start' },
@@ -128,24 +131,20 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     alignItems: 'center',
     gap: 10,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A',
-    borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   qrBox: {
     width: 120, height: 120,
     backgroundColor: colors.input,
     borderRadius: radii.sm,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020',
-    borderRightColor: colors.borderDark, borderBottomColor: colors.borderDarker,
+    borderWidth: 1, borderColor: colors.borderMid,
     overflow: 'hidden',
   },
   qrCorner: {
     position: 'absolute',
     width: 22,
     height: 22,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: colors.borderMid,
     borderRadius: 3,
   },
   qrDot: { position: 'absolute', width: 7, height: 7, borderRadius: 1.5 },
@@ -154,7 +153,7 @@ const styles = StyleSheet.create({
   },
 
   codeLabel: {
-    fontSize: 9, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase',
+    fontSize: 9, color: colors.textDim, letterSpacing: 2, textTransform: 'uppercase',
     marginBottom: 8, fontWeight: '600',
   },
   codeRow: { flexDirection: 'row', gap: 6, marginBottom: 18 },
@@ -172,7 +171,7 @@ const styles = StyleSheet.create({
   actionRow: { flexDirection: 'row', width: '100%', marginBottom: 24 },
 
   joinedLabel: {
-    fontSize: 9, color: '#3A3A3A', letterSpacing: 1.5, textTransform: 'uppercase',
+    fontSize: 9, color: colors.textDim, letterSpacing: 1.5, textTransform: 'uppercase',
     marginBottom: 8, fontWeight: '600',
   },
   joinedRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
@@ -188,4 +187,4 @@ const styles = StyleSheet.create({
 
   doneBtn: { paddingVertical: 6 },
   doneBtnText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
-});
+}));

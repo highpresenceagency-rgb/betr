@@ -8,10 +8,11 @@ import { PrimaryButton } from '../../../components/Button';
 import Input from '../../../components/Input';
 import Logo from '../../../components/Logo';
 import ProgressBar from '../../../components/ProgressBar';
-import { colors } from '../../../constants/theme';
 import { signUpStore } from '../../../lib/signUpStore';
+import { makeStyles } from '../../../lib/theme';
 
 export default function SignUpStep1() {
+  const styles = useStyles();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
@@ -20,7 +21,7 @@ export default function SignUpStep1() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -83,8 +84,8 @@ export default function SignUpStep1() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -118,4 +119,4 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   gap: { height: 10 },
-});
+}));

@@ -1,11 +1,13 @@
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import { Profile, ProfileStats, getMyProfile, getProfileStats } from '../../../lib/api';
+import { exitGuestMode, useIsGuest } from '../../../lib/guest';
 import { supabase } from '../../../lib/supabase';
+import { makeStyles, useTheme } from '../../../lib/theme';
 
 export default function ProfileScreen() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -14,6 +16,9 @@ export default function ProfileScreen() {
   const [notifs, setNotifs] = useState(true);
   const [reminders, setReminders] = useState(true);
   const [friendActivity, setFriendActivity] = useState(false);
+  const guest = useIsGuest();
+  const { colors } = useTheme();
+  const styles = useStyles();
 
   useFocusEffect(
     useCallback(() => {
@@ -34,6 +39,11 @@ export default function ProfileScreen() {
     router.replace('/');
   };
 
+  const handleExitGuest = async () => {
+    await exitGuestMode();
+    router.replace('/');
+  };
+
   const statBadges = [
     { label: 'Won', value: `$${Number(stats.won).toFixed(0)}`, color: colors.accent },
     { label: 'Win rate', value: `${stats.win_rate}%`, color: colors.textPrimary },
@@ -43,10 +53,34 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {loading ? (
           <ActivityIndicator color={colors.accent} style={{ marginTop: 40 }} />
+        ) : guest ? (
+          <View style={styles.guestCard}>
+            <View style={styles.avatarLg}>
+              <Text style={styles.avatarText}>?</Text>
+            </View>
+            <Text style={styles.guestTitle}>You're browsing as a guest</Text>
+            <Text style={styles.guestSub}>
+              Create an account to join challenges, bet on yourself, and track your wins.
+            </Text>
+            <TouchableOpacity
+              style={styles.guestPrimaryBtn}
+              onPress={() => router.push('/(auth)/sign-up/step-1')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.guestPrimaryText}>Create account</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.guestSecondaryBtn}
+              onPress={() => router.push('/(auth)/sign-in')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.guestSecondaryText}>Sign in</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <>
             <View style={styles.profileHeader}>
@@ -83,9 +117,9 @@ export default function ProfileScreen() {
               <Switch
                 value={notifs}
                 onValueChange={setNotifs}
-                trackColor={{ false: '#141414', true: colors.accentDark }}
-                thumbColor={notifs ? colors.accent : '#2A2A2A'}
-                ios_backgroundColor="#141414"
+                trackColor={{ false: colors.input, true: colors.accent }}
+                thumbColor={notifs ? '#fff' : colors.borderMid}
+                ios_backgroundColor={colors.input}
               />
             </View>
             <View style={styles.settingRow}>
@@ -93,9 +127,9 @@ export default function ProfileScreen() {
               <Switch
                 value={reminders}
                 onValueChange={setReminders}
-                trackColor={{ false: '#141414', true: colors.accentDark }}
-                thumbColor={reminders ? colors.accent : '#2A2A2A'}
-                ios_backgroundColor="#141414"
+                trackColor={{ false: colors.input, true: colors.accent }}
+                thumbColor={reminders ? '#fff' : colors.borderMid}
+                ios_backgroundColor={colors.input}
               />
             </View>
             <View style={styles.settingRow}>
@@ -103,9 +137,9 @@ export default function ProfileScreen() {
               <Switch
                 value={friendActivity}
                 onValueChange={setFriendActivity}
-                trackColor={{ false: '#141414', true: colors.accentDark }}
-                thumbColor={friendActivity ? colors.accent : '#2A2A2A'}
-                ios_backgroundColor="#141414"
+                trackColor={{ false: colors.input, true: colors.accent }}
+                thumbColor={friendActivity ? '#fff' : colors.borderMid}
+                ios_backgroundColor={colors.input}
               />
             </View>
           </View>
@@ -120,8 +154,22 @@ export default function ProfileScreen() {
             <Text style={styles.linkLabel}>Challenge history</Text>
             <Text style={styles.linkArrow}>›</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.linkRow} onPress={handleSignOut}>
-            <Text style={[styles.linkLabel, styles.signOutLabel]}>Sign out</Text>
+          <TouchableOpacity style={styles.linkRow} onPress={() => router.push('/(home)/profile/settings')}>
+            <Text style={styles.linkLabel}>Appearance & settings</Text>
+            <Text style={styles.linkArrow}>›</Text>
+          </TouchableOpacity>
+          {!guest && (
+            <TouchableOpacity style={styles.linkRow} onPress={() => router.push('/(home)/profile/reviews')}>
+              <Text style={styles.linkLabel}>Review queue</Text>
+              <Text style={styles.linkArrow}>›</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.linkRow} onPress={() => router.push('/(home)/profile/faq')}>
+            <Text style={styles.linkLabel}>Help & FAQ</Text>
+            <Text style={styles.linkArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.linkRow} onPress={guest ? handleExitGuest : handleSignOut}>
+            <Text style={[styles.linkLabel, styles.signOutLabel]}>{guest ? 'Exit guest mode' : 'Sign out'}</Text>
             <Text style={styles.linkArrow}>›</Text>
           </TouchableOpacity>
         </View>
@@ -130,8 +178,8 @@ export default function ProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 40 },
 
   profileHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 },
@@ -139,48 +187,56 @@ const styles = StyleSheet.create({
   avatarLg: {
     width: 60, height: 60, borderRadius: 30,
     backgroundColor: colors.accentDark, alignItems: 'center', justifyContent: 'center',
-    borderTopWidth: 2, borderLeftWidth: 2, borderRightWidth: 2, borderBottomWidth: 2,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
+    borderWidth: 2, borderColor: colors.accentBorder,
   },
   avatarText: { fontSize: 20, fontWeight: '800', color: colors.accent },
+
+  guestCard: {
+    backgroundColor: colors.card, borderRadius: radii.lg, padding: 20, marginBottom: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.borderMid,
+  },
+  guestTitle: { fontSize: 15, fontWeight: '800', color: colors.textPrimary, marginTop: 12, marginBottom: 6 },
+  guestSub: { fontSize: 12, color: colors.textDim, textAlign: 'center', lineHeight: 18, marginBottom: 16 },
+  guestPrimaryBtn: {
+    width: '100%', backgroundColor: colors.accent, borderRadius: radii.md, paddingVertical: 13, alignItems: 'center',
+  },
+  guestPrimaryText: { color: colors.bg, fontSize: 13, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  guestSecondaryBtn: { paddingVertical: 14, alignItems: 'center' },
+  guestSecondaryText: { color: colors.accent, fontSize: 12, fontWeight: '700' },
+
   name: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
   username: { fontSize: 11, color: colors.accent, marginTop: 1 },
   editBtn: { fontSize: 12, color: colors.accent, fontWeight: '600' },
 
   statsRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
   statBadge: {
-    flex: 1, backgroundColor: colors.input, borderRadius: radii.md,
+    flex: 1, backgroundColor: colors.card, borderRadius: radii.md,
     paddingVertical: 10, alignItems: 'center',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   statVal: { fontSize: 16, fontWeight: '800' },
-  statLabel: { fontSize: 8, color: colors.textMuted, marginTop: 2 },
+  statLabel: { fontSize: 9, color: colors.textMuted, marginTop: 2 },
 
   card: {
     backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 10,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 10 },
-  settingsList: { gap: 5 },
+  sectionTag: { fontSize: 10, color: colors.textDim, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '700', marginBottom: 10 },
+  settingsList: { gap: 6 },
   settingRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#111', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input, borderRadius: radii.md, paddingHorizontal: 12, paddingVertical: 9,
+    borderWidth: 1, borderColor: colors.borderLight,
   },
-  settingLabel: { fontSize: 12, color: colors.textSecondary },
+  settingLabel: { fontSize: 13, color: colors.textSecondary },
 
-  linksList: { gap: 5 },
+  linksList: { gap: 6 },
   linkRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#111', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 12,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.card, borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 13,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  linkLabel: { fontSize: 12, color: colors.textSecondary },
+  linkLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
   signOutLabel: { color: colors.red },
-  linkArrow: { fontSize: 16, color: '#3A3A3A' },
-});
+  linkArrow: { fontSize: 18, color: colors.textDim },
+}));

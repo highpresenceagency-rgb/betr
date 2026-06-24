@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import { colors } from '../../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../lib/theme';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -9,21 +10,24 @@ function tabIcon(focused: boolean, activeIcon: IoniconsName, inactiveIcon: Ionic
 }
 
 export default function HomeLayout() {
+  const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#0E0E0E',
+          backgroundColor: colors.card,
           borderTopColor: colors.borderLight,
-          borderTopWidth: 1.5,
-          height: 64,
-          paddingBottom: 10,
-          paddingTop: 6,
+          borderTopWidth: 1,
+          height: 72 + insets.bottom,
+          paddingBottom: 14 + insets.bottom,
+          paddingTop: 8,
         },
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textDim,
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600', letterSpacing: 0.2 },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '600', letterSpacing: 0.2 },
+        tabBarIconStyle: { marginBottom: 0 },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ focused, color }) => tabIcon(focused, 'grid', 'grid-outline', color) }} />

@@ -1,0 +1,10 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+supabase==2.11.0
+opencv-python-headless==4.10.0.84
+mediapipe==0.10.18
+numpy==1.26.4
+# Optional, heavy, GPU-friendly — enables the shown-token OCR check.
+# Comment out to run rep-counting only (token check then returns "unknown").
+easyocr==1.7.2

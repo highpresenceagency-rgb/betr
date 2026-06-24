@@ -1,6 +1,6 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors } from '../constants/theme';
+import { Text, View } from 'react-native';
+import { makeStyles } from '../lib/theme';
 
 interface Props {
   size?: 'sm' | 'md' | 'lg';
@@ -9,6 +9,7 @@ interface Props {
 const sizes = { sm: 20, md: 28, lg: 42 };
 
 export default function Logo({ size = 'md' }: Props) {
+  const styles = useStyles();
   const fs = sizes[size];
   return (
     <View>
@@ -19,7 +20,7 @@ export default function Logo({ size = 'md' }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const useStyles = makeStyles(({ colors }) => ({
   logo: {
     fontWeight: '900',
     color: colors.textPrimary,
@@ -29,4 +30,4 @@ const styles = StyleSheet.create({
   accent: {
     color: colors.accent,
   },
-});
+}));

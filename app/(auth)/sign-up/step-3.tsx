@@ -8,10 +8,11 @@ import { PrimaryButton } from '../../../components/Button';
 import Input from '../../../components/Input';
 import Logo from '../../../components/Logo';
 import ProgressBar from '../../../components/ProgressBar';
-import { colors } from '../../../constants/theme';
 import { signUpStore } from '../../../lib/signUpStore';
+import { makeStyles } from '../../../lib/theme';
 
 export default function SignUpStep3() {
+  const styles = useStyles();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -24,7 +25,7 @@ export default function SignUpStep3() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
@@ -105,8 +106,8 @@ export default function SignUpStep3() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -141,4 +142,4 @@ const styles = StyleSheet.create({
   showBtn: { color: colors.accent, fontSize: 11, fontWeight: '600' },
   validBadge: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   invalidBadge: { color: colors.red },
-});
+}));

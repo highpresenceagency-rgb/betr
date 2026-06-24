@@ -1,12 +1,14 @@
 import { router, useFocusEffect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackButton from '../../../components/BackButton';
 import { PrimaryButton } from '../../../components/Button';
-import { colors, radii } from '../../../constants/theme';
+import { radii, spacing } from '../../../constants/theme';
 import { Profile, createChallenge, getMyFriends } from '../../../lib/api';
+import { makeStyles, useTheme } from '../../../lib/theme';
+import { guardGuest } from '../../../lib/guest';
 
 const DURATIONS = [7, 14, 30, 60] as const;
 const DURATION_LABELS: Record<number, string> = { 7: '7 days', 14: '14 days', 30: '30 days', 60: '60 days' };
@@ -27,6 +29,8 @@ const START_OPTIONS = [
 ] as const;
 
 export default function CreateChallengeScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [friends, setFriends] = useState<Profile[]>([]);
   const [goal, setGoal] = useState('');
   const [bet, setBet] = useState('');
@@ -46,6 +50,7 @@ export default function CreateChallengeScreen() {
   );
 
   const handleCreate = async () => {
+    if (guardGuest('create a challenge')) return;
     if (!goal.trim()) { Alert.alert('Goal required', 'Please describe the challenge goal.'); return; }
     const betAmount = Number(bet);
     if (!bet || betAmount < 1) { Alert.alert('Bet required', 'Enter a bet amount of at least $1.'); return; }
@@ -69,11 +74,12 @@ export default function CreateChallengeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <BackButton />
-        <Text style={styles.title}>Create challenge</Text>
+        <Text style={styles.title}>Host your own game</Text>
+        <Text style={styles.subtitle}>Set the goal, the stake, and who’s in. You can play alongside everyone or just run it.</Text>
 
         <Text style={styles.label}>TYPE</Text>
         <View style={styles.typeRow}>
@@ -92,7 +98,7 @@ export default function CreateChallengeScreen() {
           <TextInput
             style={styles.textInput}
             placeholder="e.g. Take a cold shower every day for 30 days"
-            placeholderTextColor="#2E2E2E"
+            placeholderTextColor={colors.textMuted}
             value={goal}
             onChangeText={setGoal}
             multiline
@@ -106,7 +112,7 @@ export default function CreateChallengeScreen() {
           <TextInput
             style={[styles.textInput, { flex: 1, fontSize: 20, fontWeight: '800', color: colors.accent }]}
             placeholder="0"
-            placeholderTextColor="#2E2E2E"
+            placeholderTextColor={colors.textMuted}
             value={bet}
             onChangeText={t => setBet(t.replace(/[^0-9]/g, ''))}
             keyboardType="number-pad"
@@ -168,8 +174,8 @@ export default function CreateChallengeScreen() {
             <Text style={styles.label}>INVITE FRIENDS</Text>
             <View style={styles.inviteRow}>
               {friends.slice(0, 8).map(f => (
-                <View key={f.id} style={[styles.av, styles.avDim]}>
-                  <Text style={[styles.avText, styles.avTextDim]}>{f.initials}</Text>
+                <View key={f.id} style={styles.av}>
+                  <Text style={styles.avText}>{f.initials}</Text>
                 </View>
               ))}
               <TouchableOpacity style={styles.avAdd} onPress={() => router.push('/(home)/friends/add')} activeOpacity={0.8}>
@@ -180,9 +186,9 @@ export default function CreateChallengeScreen() {
         )}
 
         <View style={styles.verifyCard}>
-          <Text style={styles.verifyTitle}>🗳  Verification: group vote</Text>
+          <Text style={styles.verifyTitle}>🎥  Verification: video + AI + group</Text>
           <Text style={styles.verifyText}>
-            At the end of the challenge, members vote on whether each participant completed their goal. Majority decides.
+            Participants post in-app video proof. AI screens every clip, your accountability group can flag issues, and anything suspicious goes to a neutral reviewer.
           </Text>
         </View>
 
@@ -197,115 +203,89 @@ export default function CreateChallengeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 40 },
-  title: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: 16 },
+  title: { fontSize: 24, fontWeight: '900', color: colors.textPrimary, letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, color: colors.textDim, lineHeight: 18, marginTop: 4, marginBottom: 20 },
 
-  label: { fontSize: 8, color: '#3A3A3A', letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '700', marginBottom: 6 },
+  label: { fontSize: 10, color: colors.textDim, letterSpacing: 1.2, textTransform: 'uppercase', fontWeight: '800', marginBottom: 7 },
 
   typeRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   typeBtn: {
-    flex: 1, backgroundColor: '#111', borderRadius: radii.md, padding: 12, alignItems: 'center',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    flex: 1, backgroundColor: colors.card, borderRadius: radii.md, padding: 12, alignItems: 'center',
+    borderWidth: 1.5, borderColor: colors.borderMid,
   },
-  typeBtnActive: {
-    backgroundColor: colors.accentDark,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
-  },
-  typeBtnText: { fontSize: 13, fontWeight: '700', color: '#444', marginBottom: 2 },
+  typeBtnActive: { backgroundColor: colors.accentDark, borderColor: colors.accentBorder },
+  typeBtnText: { fontSize: 14, fontWeight: '800', color: colors.textDim, marginBottom: 2 },
   typeBtnTextActive: { color: colors.accent },
-  typeBtnSub: { fontSize: 9, color: '#2A2A2A' },
-  typeBtnSubActive: { color: '#3A7A45' },
+  typeBtnSub: { fontSize: 10, color: colors.textMuted },
+  typeBtnSubActive: { color: colors.textSecondary },
 
   inputWrap: {
     flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#111', borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input, borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 16,
+    borderWidth: 1, borderColor: colors.borderLight,
   },
   dollarSign: { fontSize: 20, fontWeight: '800', color: colors.accent, marginRight: 4 },
-  textInput: { fontSize: 13, color: colors.textPrimary, flex: 1 },
+  textInput: { fontSize: 14, color: colors.textPrimary, flex: 1 },
 
-  startNote: { fontSize: 9, color: '#2E2E2E', marginBottom: 8, marginTop: -2 },
+  startNote: { fontSize: 11, color: colors.textMuted, marginBottom: 8, marginTop: -2 },
 
   chipRow: { flexDirection: 'row', gap: 6, paddingRight: 16 },
   chip: {
-    backgroundColor: '#111', borderRadius: 20, paddingHorizontal: 12, paddingVertical: 7,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.card, borderRadius: 20, paddingHorizontal: 13, paddingVertical: 8,
+    borderWidth: 1.5, borderColor: colors.borderMid,
   },
-  chipActive: {
-    backgroundColor: colors.accentDark,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
-  },
-  chipText: { fontSize: 10, fontWeight: '600', color: '#3A3A3A' },
+  chipActive: { backgroundColor: colors.accentDark, borderColor: colors.accentBorder },
+  chipText: { fontSize: 12, fontWeight: '700', color: colors.textDim },
   chipTextActive: { color: colors.accent },
 
   toggleRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
-    backgroundColor: '#111', borderRadius: radii.md, padding: 12, marginBottom: 16,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.card, borderRadius: radii.md, padding: 14, marginBottom: 16,
+    borderWidth: 1.5, borderColor: colors.borderMid,
   },
   toggleInfo: { flex: 1 },
-  toggleLabel: { fontSize: 12, fontWeight: '700', color: colors.textSecondary, marginBottom: 2 },
-  toggleSub: { fontSize: 9, color: '#2E2E2E', lineHeight: 13 },
+  toggleLabel: { fontSize: 13, fontWeight: '800', color: colors.textPrimary, marginBottom: 2 },
+  toggleSub: { fontSize: 11, color: colors.textDim, lineHeight: 15 },
   toggle: {
-    width: 44, height: 26, borderRadius: 13, backgroundColor: '#1A1A1A', justifyContent: 'center', paddingHorizontal: 3,
-    borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
-    borderTopColor: '#2A2A2A', borderLeftColor: '#242424', borderRightColor: '#111', borderBottomColor: '#0A0A0A',
+    width: 46, height: 28, borderRadius: 14, backgroundColor: colors.input, justifyContent: 'center', paddingHorizontal: 3,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  toggleActive: {
-    backgroundColor: colors.accentDark,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
-  },
-  toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#333' },
+  toggleActive: { backgroundColor: colors.accentDark, borderColor: colors.accentBorder },
+  toggleThumb: { width: 22, height: 22, borderRadius: 11, backgroundColor: colors.textMuted },
   toggleThumbActive: { backgroundColor: colors.accent, alignSelf: 'flex-end' },
 
   feeSection: { marginBottom: 16 },
   feeLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  feeVal: { fontSize: 13, fontWeight: '800', color: colors.accent },
-  feeNote: { fontSize: 9, color: '#2E2E2E', lineHeight: 13, marginBottom: 10 },
+  feeVal: { fontSize: 14, fontWeight: '900', color: colors.accent },
+  feeNote: { fontSize: 11, color: colors.textDim, lineHeight: 15, marginBottom: 10 },
   feeStepsRow: { flexDirection: 'row', gap: 6 },
   feeStep: {
-    flex: 1, backgroundColor: '#111', borderRadius: 8, paddingVertical: 9, alignItems: 'center',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    flex: 1, backgroundColor: colors.card, borderRadius: 8, paddingVertical: 10, alignItems: 'center',
+    borderWidth: 1.5, borderColor: colors.borderMid,
   },
-  feeStepActive: {
-    backgroundColor: colors.accentDark,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
-  },
-  feeStepText: { fontSize: 10, fontWeight: '700', color: '#333' },
+  feeStepActive: { backgroundColor: colors.accentDark, borderColor: colors.accentBorder },
+  feeStepText: { fontSize: 11, fontWeight: '800', color: colors.textDim },
   feeStepTextActive: { color: colors.accent },
 
-  inviteRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
-  av: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  avDim: {
-    backgroundColor: '#141414',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#252525', borderLeftColor: '#1E1E1E', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+  inviteRow: { flexDirection: 'row', gap: 8, marginBottom: 16, flexWrap: 'wrap' },
+  av: {
+    width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.accentDark, borderWidth: 1.5, borderColor: colors.accentBorder,
   },
-  avText: { fontSize: 10, fontWeight: '700' },
-  avTextDim: { color: '#3A3A3A' },
+  avText: { fontSize: 11, fontWeight: '800', color: colors.accent },
   avAdd: {
-    width: 38, height: 38, borderRadius: 19, backgroundColor: '#141414', alignItems: 'center', justifyContent: 'center',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#252525', borderLeftColor: '#1E1E1E', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    width: 40, height: 40, borderRadius: 20, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1.5, borderColor: colors.borderMid,
   },
-  avAddText: { fontSize: 20, color: '#333', lineHeight: 22 },
+  avAddText: { fontSize: 22, color: colors.textDim, lineHeight: 24 },
 
   verifyCard: {
-    backgroundColor: '#0D0D0D', borderRadius: radii.md, padding: 12, marginTop: 4,
-    borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
-    borderTopColor: '#1A1A1A', borderLeftColor: '#161616', borderRightColor: '#080808', borderBottomColor: '#050505',
+    backgroundColor: colors.cardInner, borderRadius: radii.md, padding: 14, marginTop: 4,
+    borderWidth: 1, borderColor: colors.borderLight,
   },
-  verifyTitle: { fontSize: 11, fontWeight: '700', color: '#3A3A3A', marginBottom: 4 },
-  verifyText: { fontSize: 9, color: '#262626', lineHeight: 14 },
-});
+  verifyTitle: { fontSize: 13, fontWeight: '800', color: colors.textSecondary, marginBottom: 4 },
+  verifyText: { fontSize: 12, color: colors.textDim, lineHeight: 17 },
+}));

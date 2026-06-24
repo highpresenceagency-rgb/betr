@@ -1,15 +1,19 @@
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import { Transaction, Wallet, depositFunds, getMyTransactions, getMyWallet, requestWithdrawal } from '../../../lib/api';
+import { makeStyles, useTheme } from '../../../lib/theme';
+import { guardGuest } from '../../../lib/guest';
 
 const DEPOSIT_AMOUNTS = [25, 50, 100, 250] as const;
 const TABS = ['Deposit', 'Withdraw'] as const;
 
 export default function WalletScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [wallet, setWallet] = useState<Wallet>({ balance: 0, locked_balance: 0 });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +43,7 @@ export default function WalletScreen() {
   const depositTotal = amount > 0 ? (amount + Number(cardFee)).toFixed(2) : '0.00';
 
   const handleDeposit = async () => {
+    if (guardGuest('add funds')) return;
     if (amount <= 0) { Alert.alert('Enter an amount'); return; }
     setActing(true);
     try {
@@ -51,6 +56,7 @@ export default function WalletScreen() {
   };
 
   const handleWithdraw = () => {
+    if (guardGuest('withdraw funds')) return;
     if (amount <= 0) { Alert.alert('Enter an amount'); return; }
     if (amount < 5) { Alert.alert('Minimum withdrawal', 'Minimum withdrawal is $5.'); return; }
     if (amount > wallet.balance) { Alert.alert('Insufficient balance', `Your available balance is $${wallet.balance.toFixed(2)}.`); return; }
@@ -93,8 +99,8 @@ export default function WalletScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
         <View style={styles.balanceCard}>
@@ -143,7 +149,7 @@ export default function WalletScreen() {
           <TextInput
             style={styles.customInput}
             placeholder="Custom amount"
-            placeholderTextColor="#2A2A2A"
+            placeholderTextColor={colors.textMuted}
             value={customAmt}
             onChangeText={t => { setCustomAmt(t.replace(/[^0-9.]/g, '')); setSelectedAmt(null); }}
             keyboardType="decimal-pad"
@@ -194,7 +200,7 @@ export default function WalletScreen() {
         ) : (
           transactions.map(tx => (
             <View key={tx.id} style={styles.txRow}>
-              <View style={[styles.txIcon, { backgroundColor: isDebit(tx.type) ? '#1A0A0A' : colors.accentDark }]}>
+              <View style={[styles.txIcon, { backgroundColor: isDebit(tx.type) ? colors.cardInner : colors.accentDark }]}>
                 <Text style={[styles.txIconText, { color: txColor(tx.type) }]}>{txIcon(tx.type)}</Text>
               </View>
               <View style={styles.txInfo}>
@@ -214,104 +220,82 @@ export default function WalletScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
-  scroll: { paddingBottom: 32 },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
+  scroll: { paddingBottom: 32, paddingTop: 12 },
 
   balanceCard: {
     margin: 16, backgroundColor: colors.card, borderRadius: radii.lg, padding: 16,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  balanceTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 4 },
+  balanceTag: { fontSize: 10, color: colors.textDim, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '700', marginBottom: 4 },
   balanceAmt: { fontSize: 44, fontWeight: '900', color: colors.accent, letterSpacing: -2, marginBottom: 10 },
-  shimmer: { height: 1, backgroundColor: '#2E2E2E', marginVertical: 8 },
+  shimmer: { height: 1, backgroundColor: colors.borderMid, marginVertical: 8 },
   lockedRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
-  lockedLabel: { fontSize: 11, color: colors.textMuted },
-  lockedAmt: { fontSize: 11, fontWeight: '700', color: '#555' },
+  lockedLabel: { fontSize: 12, color: colors.textDim },
+  lockedAmt: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
 
   tabRow: { flexDirection: 'row', marginHorizontal: 16, marginBottom: 16, gap: 8 },
   tabBtn: {
-    flex: 1, paddingVertical: 10, borderRadius: radii.md, alignItems: 'center',
-    backgroundColor: '#111',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    flex: 1, paddingVertical: 11, borderRadius: radii.md, alignItems: 'center',
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderMid,
   },
-  tabBtnActive: {
-    backgroundColor: colors.accentDark,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
-  },
-  tabBtnText: { fontSize: 12, fontWeight: '700', color: '#444' },
+  tabBtnActive: { backgroundColor: colors.accentDark, borderColor: colors.accentBorder },
+  tabBtnText: { fontSize: 13, fontWeight: '700', color: colors.textDim },
   tabBtnTextActive: { color: colors.accent },
 
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8, paddingHorizontal: 16 },
+  sectionTag: { fontSize: 10, color: colors.textDim, letterSpacing: 1.5, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8, paddingHorizontal: 16 },
 
   amountRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 16, marginBottom: 10 },
   amtChip: {
-    flex: 1, paddingVertical: 10, borderRadius: radii.md, alignItems: 'center',
-    backgroundColor: '#111',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    flex: 1, paddingVertical: 11, borderRadius: radii.md, alignItems: 'center',
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderMid,
   },
-  amtChipActive: {
-    backgroundColor: colors.accentDark,
-    borderTopColor: colors.accentBorder, borderLeftColor: colors.accentBorderL,
-    borderRightColor: colors.accentBorderR, borderBottomColor: colors.accentBorderB,
-  },
-  amtChipText: { fontSize: 13, fontWeight: '800', color: '#3A3A3A' },
+  amtChipActive: { backgroundColor: colors.accentDark, borderColor: colors.accentBorder },
+  amtChipText: { fontSize: 14, fontWeight: '800', color: colors.textDim },
   amtChipTextActive: { color: colors.accent },
 
   customWrap: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 16, marginBottom: 16,
-    backgroundColor: '#111', borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 12,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input, borderRadius: radii.md, paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: colors.borderLight,
   },
   dollarSign: { fontSize: 16, fontWeight: '800', color: colors.accent, marginRight: 6 },
   customInput: { flex: 1, fontSize: 16, fontWeight: '700', color: colors.accent },
 
   withdrawNote: {
     marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: radii.md,
-    backgroundColor: '#0D0D0D',
-    borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
-    borderTopColor: '#1A1A1A', borderLeftColor: '#161616', borderRightColor: '#080808', borderBottomColor: '#050505',
+    backgroundColor: colors.cardInner, borderWidth: 1, borderColor: colors.borderLight,
   },
-  withdrawNoteText: { fontSize: 11, color: '#3A3A3A', textAlign: 'center' },
+  withdrawNoteText: { fontSize: 12, color: colors.textDim, textAlign: 'center' },
 
   summaryCard: {
     marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: radii.md,
-    backgroundColor: '#0D0D0D',
-    borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
-    borderTopColor: '#1A1A1A', borderLeftColor: '#161616', borderRightColor: '#080808', borderBottomColor: '#050505',
+    backgroundColor: colors.cardInner, borderWidth: 1, borderColor: colors.borderLight,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
-  summaryLabel: { fontSize: 11, color: '#3A3A3A' },
-  summaryLabelBold: { fontSize: 11, fontWeight: '700', color: colors.textMuted },
-  summaryVal: { fontSize: 11, fontWeight: '700', color: colors.textSecondary },
+  summaryLabel: { fontSize: 12, color: colors.textDim },
+  summaryLabelBold: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+  summaryVal: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
 
   actionBtn: {
-    marginHorizontal: 16, paddingVertical: 14, borderRadius: radii.md, alignItems: 'center',
+    marginHorizontal: 16, paddingVertical: 15, borderRadius: radii.md, alignItems: 'center',
     backgroundColor: colors.accent,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#60FF9A', borderLeftColor: '#50EF8A', borderRightColor: '#20CF5A', borderBottomColor: '#10BF4A',
   },
   actionBtnText: { fontSize: 14, fontWeight: '900', color: colors.bg, letterSpacing: 0.5 },
 
   txRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginHorizontal: 16, marginBottom: 6, padding: 10, borderRadius: 9,
-    backgroundColor: '#111',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    marginHorizontal: 16, marginBottom: 6, padding: 10, borderRadius: radii.md,
+    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.borderMid,
   },
   txIcon: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   txIconText: { fontSize: 12, fontWeight: '800' },
   txInfo: { flex: 1 },
-  txDesc: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
-  txDate: { fontSize: 9, color: '#333', marginTop: 1 },
+  txDesc: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  txDate: { fontSize: 10, color: colors.textMuted, marginTop: 1 },
   txAmt: { fontSize: 13, fontWeight: '800' },
 
   emptyText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', paddingVertical: 12, paddingHorizontal: 16 },
-});
+}));

@@ -17,7 +17,8 @@
       "autoIncrement": true
     }
   },
-  "submit": {
+  "submit": { 
+    
     "production": {
       "ios": {
         "appleId": "replace-with-your-apple-id@email.com",

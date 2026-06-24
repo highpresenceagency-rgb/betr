@@ -3,10 +3,13 @@ import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import { Profile, getMyFriends, getMyProfile } from '../../../lib/api';
+import { makeStyles, useTheme } from '../../../lib/theme';
 
 export default function FriendsScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [friends, setFriends] = useState<Profile[]>([]);
   const [me, setMe] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,7 +30,7 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.title}>Friends</Text>
@@ -93,39 +96,36 @@ export default function FriendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 32 },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
   title: { fontSize: 22, fontWeight: '800', color: colors.textPrimary },
   addBtn: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   addBtnText: { color: colors.bg, fontSize: 11, fontWeight: '800' },
 
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
+  sectionTag: { fontSize: 8, color: colors.textDim, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
 
   av: { width: 26, height: 26, borderRadius: 13, alignItems: 'center', justifyContent: 'center' },
   avGreen: {
     backgroundColor: colors.accentDark,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#3A7A45', borderLeftColor: '#2A6035', borderRightColor: '#0E1F12', borderBottomColor: '#091508',
+    borderWidth: 1, borderColor: colors.accentBorder,
   },
   avDim: {
-    backgroundColor: '#141414',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#252525', borderLeftColor: '#1E1E1E', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   avText: { fontSize: 8, fontWeight: '700' },
   avTextGreen: { color: colors.accent },
-  avTextDim: { color: '#3A3A3A' },
+  avTextDim: { color: colors.textDim },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   rowName: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
 
   friendRow: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#111', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 8,
+    backgroundColor: colors.card, borderRadius: 9, paddingHorizontal: 10, paddingVertical: 8,
     marginBottom: 5,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   friendSub: { fontSize: 9, color: colors.textMuted, marginTop: 1 },
   challengeLink: { fontSize: 11, color: colors.accent, fontWeight: '600' },
@@ -133,4 +133,4 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingVertical: 24 },
   emptyText: { color: colors.textMuted, fontSize: 13, marginBottom: 8 },
   emptyLink: { color: colors.accent, fontSize: 13, fontWeight: '600' },
-});
+}));

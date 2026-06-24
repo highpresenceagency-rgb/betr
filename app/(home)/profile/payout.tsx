@@ -4,9 +4,12 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../../../components/Button';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
+import { makeStyles, useTheme } from '../../../lib/theme';
 
 export default function PayoutScreen() {
+  const styles = useStyles();
+  const { colors } = useTheme();
   const params = useLocalSearchParams<{
     challengeName?: string;
     betAmount?: string;
@@ -22,7 +25,7 @@ export default function PayoutScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         <View style={styles.starRing}>
@@ -54,10 +57,10 @@ export default function PayoutScreen() {
           {creatorFee > 0 && (
             <View style={styles.breakdownRow}>
               <View style={styles.breakdownLabelWrap}>
-                <Text style={[styles.breakdownLabel, { color: '#444' }]}>Creator fee</Text>
+                <Text style={[styles.breakdownLabel, { color: colors.textDim }]}>Creator fee</Text>
                 <Text style={styles.breakdownSub}>deducted from pot</Text>
               </View>
-              <Text style={[styles.breakdownVal, { color: '#444' }]}>−${creatorFee.toFixed(2)}</Text>
+              <Text style={[styles.breakdownVal, { color: colors.textDim }]}>−${creatorFee.toFixed(2)}</Text>
             </View>
           )}
 
@@ -88,8 +91,8 @@ export default function PayoutScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 16, paddingTop: 32, paddingBottom: 40, alignItems: 'center' },
 
   starRing: {
@@ -106,34 +109,31 @@ const styles = StyleSheet.create({
 
   breakdownCard: {
     width: '100%', backgroundColor: colors.card, borderRadius: radii.lg, padding: 14, marginBottom: 12,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#303030', borderLeftColor: '#2A2A2A', borderRightColor: '#111111', borderBottomColor: '#0A0A0A',
+    borderWidth: 1, borderColor: colors.borderMid,
   },
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 10 },
-  shimmer: { height: 1, backgroundColor: '#2E2E2E', marginVertical: 8 },
+  sectionTag: { fontSize: 8, color: colors.textDim, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 10 },
+  shimmer: { height: 1, backgroundColor: colors.borderMid, marginVertical: 8 },
 
   breakdownRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 3 },
   breakdownLabelWrap: { flex: 1, marginRight: 8 },
   breakdownLabel: { fontSize: 12, color: colors.textSecondary },
-  breakdownSub: { fontSize: 9, color: '#2E2E2E', marginTop: 1 },
+  breakdownSub: { fontSize: 9, color: colors.textMuted, marginTop: 1 },
   breakdownVal: { fontSize: 13, fontWeight: '800', color: colors.accent },
 
   totalLabel: { fontSize: 13, fontWeight: '800', color: colors.textPrimary },
   totalVal: { fontSize: 20, fontWeight: '900', color: colors.accent },
 
   feeNote: {
-    width: '100%', backgroundColor: '#0D0D0D', borderRadius: radii.md, padding: 10, marginBottom: 20,
-    borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1,
-    borderTopColor: '#1A1A1A', borderLeftColor: '#161616', borderRightColor: '#080808', borderBottomColor: '#050505',
+    width: '100%', backgroundColor: colors.card, borderRadius: radii.md, padding: 10, marginBottom: 20,
+    borderWidth: 1, borderColor: colors.borderLight,
   },
-  feeNoteText: { fontSize: 9, color: '#2A2A2A', lineHeight: 14, textAlign: 'center' },
+  feeNoteText: { fontSize: 9, color: colors.textMuted, lineHeight: 14, textAlign: 'center' },
 
   keepBtn: {
     width: '100%', paddingVertical: 12, borderRadius: radii.md, alignItems: 'center',
-    backgroundColor: '#111',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   keepBtnText: { fontSize: 13, fontWeight: '700', color: colors.textSecondary },
   newChallengeLink: { fontSize: 12, color: colors.accent, fontWeight: '600' },
-});
+}));

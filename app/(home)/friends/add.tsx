@@ -3,10 +3,14 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import BackButton from '../../../components/BackButton';
-import { colors, radii } from '../../../constants/theme';
+import { radii } from '../../../constants/theme';
 import { Profile, getPendingRequests, respondToFriendRequest, searchUsers, sendFriendRequest } from '../../../lib/api';
+import { makeStyles, useTheme } from '../../../lib/theme';
+import { guardGuest } from '../../../lib/guest';
 
 export default function AddFriendsScreen() {
+  const { colors } = useTheme();
+  const styles = useStyles();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Profile[]>([]);
   const [searching, setSearching] = useState(false);
@@ -28,6 +32,7 @@ export default function AddFriendsScreen() {
   }, [query]);
 
   const handleAdd = async (userId: string) => {
+    if (guardGuest('add friends')) return;
     setSent(prev => new Set(prev).add(userId));
     try {
       await sendFriendRequest(userId);
@@ -37,6 +42,7 @@ export default function AddFriendsScreen() {
   };
 
   const handleRespond = async (friendshipId: string, accept: boolean) => {
+    if (guardGuest('respond to friend requests')) return;
     setDismissed(prev => new Set(prev).add(friendshipId));
     await respondToFriendRequest(friendshipId, accept);
   };
@@ -45,7 +51,7 @@ export default function AddFriendsScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar style="light" />
+      <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <BackButton label="← Friends" />
         <Text style={styles.title}>Add friends</Text>
@@ -128,8 +134,8 @@ export default function AddFriendsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.bg },
+const useStyles = makeStyles(({ colors }) => ({
+  safe: { flex: 1, backgroundColor: colors.bgPage },
   scroll: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 40 },
   title: { fontSize: 22, fontWeight: '800', color: colors.textPrimary, marginBottom: 14 },
   searchBar: {
@@ -142,46 +148,41 @@ const styles = StyleSheet.create({
   },
   searchIcon: { fontSize: 14 },
   searchInput: { flex: 1, color: colors.textSecondary, fontSize: 13, paddingVertical: 0 },
-  sectionTag: { fontSize: 8, color: '#3A3A3A', letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
+  sectionTag: { fontSize: 8, color: colors.textDim, letterSpacing: 2, textTransform: 'uppercase', fontWeight: '700', marginBottom: 8 },
   list: { gap: 5 },
   row: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    backgroundColor: '#111', borderRadius: 9, paddingHorizontal: 10, paddingVertical: 8,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#262626', borderLeftColor: '#202020', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.card, borderRadius: 9, paddingHorizontal: 10, paddingVertical: 8,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   av: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   avGreen: {
     backgroundColor: colors.accentDark,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#3A7A45', borderLeftColor: '#2A6035', borderRightColor: '#0E1F12', borderBottomColor: '#091508',
+    borderWidth: 1, borderColor: colors.accentBorder,
   },
   avDim: {
-    backgroundColor: '#141414',
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#252525', borderLeftColor: '#1E1E1E', borderRightColor: '#0D0D0D', borderBottomColor: '#080808',
+    backgroundColor: colors.input,
+    borderWidth: 1, borderColor: colors.borderMid,
   },
   avTextGreen: { fontSize: 9, fontWeight: '700', color: colors.accent },
-  avTextDim: { fontSize: 9, fontWeight: '700', color: '#3A3A3A' },
+  avTextDim: { fontSize: 9, fontWeight: '700', color: colors.textDim },
   rowName: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
   rowSub: { fontSize: 9, color: colors.textMuted, marginTop: 1 },
   addBtn: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5 },
   addBtnText: { color: colors.bg, fontSize: 10, fontWeight: '800' },
   sentBadge: {
-    backgroundColor: '#111', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#1E1E1E', borderLeftColor: '#1A1A1A', borderRightColor: '#0A0A0A', borderBottomColor: '#080808',
+    backgroundColor: colors.input, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5,
+    borderWidth: 1, borderColor: colors.borderLight,
   },
-  sentText: { color: '#444', fontSize: 10, fontWeight: '600', textTransform: 'uppercase' },
+  sentText: { color: colors.textDim, fontSize: 10, fontWeight: '600', textTransform: 'uppercase' },
   actionPair: { flexDirection: 'row', gap: 6 },
   acceptBtn: { backgroundColor: colors.accent, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6 },
   acceptText: { color: colors.bg, fontSize: 12, fontWeight: '800' },
   rejectBtn: {
-    backgroundColor: '#1A0808', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
-    borderTopWidth: 1.5, borderLeftWidth: 1.5, borderRightWidth: 1.5, borderBottomWidth: 1.5,
-    borderTopColor: '#3A1A1A', borderLeftColor: '#2A1212', borderRightColor: '#0D0808', borderBottomColor: '#080404',
+    backgroundColor: colors.input, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 6,
+    borderWidth: 1, borderColor: colors.red,
   },
   rejectText: { color: colors.red, fontSize: 12, fontWeight: '800' },
   hintText: { color: colors.textMuted, fontSize: 12, textAlign: 'center', marginTop: 32 },
-});
+}));
